@@ -735,7 +735,7 @@ export default function App() {
       <div className="w-80 flex flex-col bg-white border-r shadow-sm z-10 overflow-y-auto">
         <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-white z-10">
           <div className="flex items-center gap-3">
-            <a href="about:blank" target="_blank" rel="noopener noreferrer" className="flex items-center gap-0.5 hover:opacity-80 transition-opacity" title="새 창으로 이동">
+            <a href="/" className="flex items-center gap-0.5 hover:opacity-80 transition-opacity" title="홈으로 이동">
               <Plus className="w-5 h-5 text-blue-500 font-bold" strokeWidth={3} />
               <div className="flex -space-x-1">
                 <div className="w-4 h-4 rounded-full border-2 border-blue-400"></div>
