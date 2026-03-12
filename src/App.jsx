@@ -18,7 +18,8 @@ import {
   Bold,
   Underline,
   Highlighter,
-  Table
+  Table,
+  ExternalLink
 } from 'lucide-react';
 
 // --- 유틸리티 함수 ---
@@ -302,6 +303,7 @@ export default function App() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportHtml, setExportHtml] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
+  const [showDonationSetupModal, setShowDonationSetupModal] = useState(false);
 
   // --- 조건부 서식 관련 상태 ---
   const [showCondFormatModal, setShowCondFormatModal] = useState(false);
@@ -727,279 +729,355 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 text-gray-800 font-sans">
+    <div className="flex h-screen bg-gray-50 text-gray-800 font-sans overflow-hidden">
       
-      {/* 상단 툴바 */}
-      <div className="flex items-center gap-4 p-3 bg-white border-b shadow-sm select-none overflow-x-auto whitespace-nowrap">
-        <div className="flex items-center gap-2 pr-4 border-r">
-          <span className="font-bold text-green-700 text-xl flex items-center gap-1">
+      {/* 좌측 사이드바 (툴바) */}
+      <div className="w-80 flex flex-col bg-white border-r shadow-sm z-10 overflow-y-auto">
+        <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-white z-10">
+          <span className="font-bold text-green-700 text-xl flex items-center gap-2">
             <Calculator className="w-6 h-6" /> WebExcel
           </span>
         </div>
 
-        {/* 저장 버튼 */}
-        <div className="flex items-center">
-          <button 
-            onClick={handleSave} 
-            className="p-1.5 hover:bg-gray-100 rounded text-sm flex items-center gap-1 text-indigo-600 font-medium transition-colors" 
-            title="현재 표를 HTML 코드로 추출하여 복사합니다"
-          >
-            <Save className="w-5 h-5" /> 저장
-          </button>
-        </div>
-
-        <div className="w-px h-6 bg-gray-300"></div>
-
-        {/* 폰트/스타일/색상 피커 및 배경 업로드 */}
-        <div className="flex items-center gap-2">
-          {/* 폰트 설정 */}
-          <div 
-            className={`flex items-center gap-1 ${!isStylePickerEnabled ? 'opacity-50 cursor-not-allowed' : ''}`} 
-            title={isStylePickerEnabled ? "선택된 행/열 폰트 및 크기 변경" : "행 또는 열 헤더를 먼저 선택하세요"}
-          >
-            <select
-              value={currentFontFamily}
-              onChange={(e) => handleStyleChange('fontFamily', e.target.value)}
-              disabled={!isStylePickerEnabled}
-              className={`w-32 text-xs border border-gray-200 rounded p-1.5 outline-none ${isStylePickerEnabled ? 'cursor-pointer focus:border-blue-400' : 'pointer-events-none'}`}
-            >
-              <option value="sans-serif">고딕 (기본)</option>
-              <option value="'Malgun Gothic', sans-serif">맑은 고딕</option>
-              <option value="'Nanum Gothic', sans-serif">나눔 고딕</option>
-              <option value="'Dotum', sans-serif">돋움</option>
-              <option value="'Gulim', sans-serif">굴림</option>
-              <option value="serif">명조</option>
-              <option value="'Batang', serif">바탕</option>
-              <option value="monospace">고정폭</option>
-            </select>
-
-            <select
-              value={currentFontSize}
-              onChange={(e) => handleStyleChange('fontSize', parseInt(e.target.value, 10))}
-              disabled={!isStylePickerEnabled}
-              className={`w-16 text-xs border border-gray-200 rounded p-1.5 outline-none ${isStylePickerEnabled ? 'cursor-pointer focus:border-blue-400' : 'pointer-events-none'}`}
-            >
-              {[10, 11, 12, 14, 16, 18, 20, 24, 28, 32].map(size => (
-                <option key={size} value={size}>{size}px</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
-
-          {/* 굵게 / 밑줄 토글 버튼 */}
-          <div className={`flex items-center gap-1 ${!isStylePickerEnabled ? 'opacity-50' : ''}`}>
-            <button
-              onClick={() => handleStyleChange('fontWeight', currentFontWeight === 'bold' ? 'normal' : 'bold')}
-              disabled={!isStylePickerEnabled}
-              className={`p-1.5 rounded transition-colors ${currentFontWeight === 'bold' ? 'bg-gray-300 text-gray-900' : 'hover:bg-gray-100 text-gray-700'} ${!isStylePickerEnabled ? 'cursor-not-allowed' : ''}`}
-              title="굵게 (Bold)"
-            >
-              <Bold className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleStyleChange('textDecoration', currentTextDecoration === 'underline' ? 'none' : 'underline')}
-              disabled={!isStylePickerEnabled}
-              className={`p-1.5 rounded transition-colors ${currentTextDecoration === 'underline' ? 'bg-gray-300 text-gray-900' : 'hover:bg-gray-100 text-gray-700'} ${!isStylePickerEnabled ? 'cursor-not-allowed' : ''}`}
-              title="밑줄 (Underline)"
-            >
-              <Underline className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
-
-          {/* 색상 피커 */}
-          <div 
-            className={`flex items-center gap-1 ${!isStylePickerEnabled ? 'opacity-50 cursor-not-allowed' : ''}`} 
-            title={isStylePickerEnabled ? "선택된 행/열 전체 배경색 변경" : "행 또는 열 헤더를 먼저 선택하세요"}
-          >
-            <PaintBucket className="w-5 h-5 text-gray-600 ml-1" />
-            <input 
-              type="color" 
-              className={`w-8 h-8 border-0 p-0 rounded-md ${isStylePickerEnabled ? 'cursor-pointer' : 'pointer-events-none'}`}
-              value={currentColor}
-              onChange={(e) => handleStyleChange('color', e.target.value)}
-              disabled={!isStylePickerEnabled}
-            />
-          </div>
-          
-          <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
-
-          {/* 조건부 서식 버튼 */}
-          <button 
-            onClick={() => setShowCondFormatModal(true)} 
-            className="p-1.5 hover:bg-gray-100 rounded text-sm flex items-center gap-1 text-pink-600 font-medium transition-colors" 
-            title="선택한 열에 조건부 서식(셀 강조 규칙)을 적용합니다"
-          >
-            <Highlighter className="w-4 h-4" /> 조건부 서식
-          </button>
-
-          {/* 표 서식 버튼 */}
-          <button 
-            onClick={() => setShowTableFormatModal(true)} 
-            className="p-1.5 hover:bg-gray-100 rounded text-sm flex items-center gap-1 text-teal-600 font-medium transition-colors" 
-            title="현재 표 전체에 디자인 서식을 적용합니다"
-          >
-            <Table className="w-4 h-4" /> 표 서식
-          </button>
-
-          <div className="w-px h-6 bg-gray-300 mx-1"></div>
-
-          {/* 배경 이미지 설정 */}
-          <div className="flex items-center gap-1">
+        <div className="p-4 flex flex-col gap-6">
+          {/* 저장 및 안내 */}
+          <div className="flex flex-col gap-2">
             <button 
-              onClick={() => fileInputRef.current?.click()} 
-              className="p-1.5 hover:bg-gray-100 rounded text-sm flex items-center gap-1 text-gray-700 font-medium" 
-              title="스프레드시트 배경 이미지 업로드"
+              onClick={handleSave} 
+              className="w-full py-2 px-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm flex items-center justify-center gap-2 text-indigo-700 font-bold transition-colors border border-indigo-200" 
+              title="현재 표를 HTML 코드로 추출하여 복사합니다"
             >
-              <ImageIcon className="w-5 h-5 text-emerald-600" /> 배경
+              <Save className="w-5 h-5" /> HTML 코드로 저장
             </button>
-            {bgImage && (
-              <div className="flex items-center gap-2 px-2 py-1 ml-1 bg-gray-50 rounded border border-gray-200">
-                <span className="text-[11px] text-gray-500 font-medium">투명도</span>
-                <input 
-                  type="range" 
-                  min="0.1" 
-                  max="1.0" 
-                  step="0.05" 
-                  value={bgOpacity} 
-                  onChange={(e) => setBgOpacity(parseFloat(e.target.value))}
-                  className="w-16 accent-emerald-500 cursor-pointer"
-                  title="이미지 선명도 조절"
-                />
-                <button 
-                  onClick={() => {
-                    setBgImage(null);
-                    setBgOpacity(0.5); // 배경 제거 시 투명도 리셋
-                  }} 
-                  className="p-1 hover:bg-gray-200 rounded text-red-500 ml-1" 
-                  title="배경 이미지 제거"
+            <button 
+              onClick={() => setShowDonationSetupModal(true)} 
+              className="w-full py-2 px-4 bg-orange-50 hover:bg-orange-100 rounded-lg text-sm flex items-center justify-center gap-2 text-orange-700 font-bold transition-colors border border-orange-200" 
+              title="후원페이지 URL 설정 안내"
+            >
+              <ExternalLink className="w-5 h-5" /> 후원 연동 안내
+            </button>
+          </div>
+
+          <hr className="border-gray-200" />
+
+          {/* 폰트/스타일/색상 설정 */}
+          <div className="flex flex-col gap-3">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">스타일 설정</h3>
+            
+            <div className={`flex flex-col gap-2 ${!isStylePickerEnabled ? 'opacity-50' : ''}`}>
+              <select
+                value={currentFontFamily}
+                onChange={(e) => handleStyleChange('fontFamily', e.target.value)}
+                disabled={!isStylePickerEnabled}
+                className={`w-full text-sm border border-gray-300 rounded-md p-2 outline-none ${isStylePickerEnabled ? 'cursor-pointer focus:border-blue-500 focus:ring-1 focus:ring-blue-500' : 'pointer-events-none bg-gray-50'}`}
+              >
+                <option value="sans-serif">고딕 (기본)</option>
+                <option value="'Malgun Gothic', sans-serif">맑은 고딕</option>
+                <option value="'Nanum Gothic', sans-serif">나눔 고딕</option>
+                <option value="'Dotum', sans-serif">돋움</option>
+                <option value="'Gulim', sans-serif">굴림</option>
+                <option value="serif">명조</option>
+                <option value="'Batang', serif">바탕</option>
+                <option value="monospace">고정폭</option>
+              </select>
+
+              <div className="flex items-center gap-2">
+                <select
+                  value={currentFontSize}
+                  onChange={(e) => handleStyleChange('fontSize', parseInt(e.target.value, 10))}
+                  disabled={!isStylePickerEnabled}
+                  className={`flex-1 text-sm border border-gray-300 rounded-md p-2 outline-none ${isStylePickerEnabled ? 'cursor-pointer focus:border-blue-500 focus:ring-1 focus:ring-blue-500' : 'pointer-events-none bg-gray-50'}`}
                 >
-                  <X className="w-4 h-4" />
-                </button>
+                  {[10, 11, 12, 14, 16, 18, 20, 24, 28, 32].map(size => (
+                    <option key={size} value={size}>{size}px</option>
+                  ))}
+                </select>
+
+                <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1 bg-white">
+                  <button
+                    onClick={() => handleStyleChange('fontWeight', currentFontWeight === 'bold' ? 'normal' : 'bold')}
+                    disabled={!isStylePickerEnabled}
+                    className={`p-1.5 rounded transition-colors ${currentFontWeight === 'bold' ? 'bg-gray-200 text-gray-900' : 'hover:bg-gray-100 text-gray-700'} ${!isStylePickerEnabled ? 'cursor-not-allowed' : ''}`}
+                    title="굵게 (Bold)"
+                  >
+                    <Bold className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleStyleChange('textDecoration', currentTextDecoration === 'underline' ? 'none' : 'underline')}
+                    disabled={!isStylePickerEnabled}
+                    className={`p-1.5 rounded transition-colors ${currentTextDecoration === 'underline' ? 'bg-gray-200 text-gray-900' : 'hover:bg-gray-100 text-gray-700'} ${!isStylePickerEnabled ? 'cursor-not-allowed' : ''}`}
+                    title="밑줄 (Underline)"
+                  >
+                    <Underline className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="border border-gray-300 rounded-md p-1 bg-white flex items-center justify-center w-10 h-10 relative">
+                  <PaintBucket className="w-4 h-4 text-gray-600 absolute pointer-events-none" />
+                  <input 
+                    type="color" 
+                    className={`w-full h-full opacity-0 ${isStylePickerEnabled ? 'cursor-pointer' : 'pointer-events-none'}`}
+                    value={currentColor}
+                    onChange={(e) => handleStyleChange('color', e.target.value)}
+                    disabled={!isStylePickerEnabled}
+                    title="배경색 변경"
+                  />
+                  <div className="absolute bottom-1 right-1 w-3 h-3 rounded-full border border-gray-300 pointer-events-none" style={{ backgroundColor: currentColor }}></div>
+                </div>
               </div>
-            )}
-            <input 
-              type="file" 
-              accept="image/*" 
-              ref={fileInputRef} 
-              onChange={handleImageUpload} 
-              className="hidden" 
-            />
+            </div>
+          </div>
+
+          <hr className="border-gray-200" />
+
+          {/* 고급 서식 */}
+          <div className="flex flex-col gap-3">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">고급 서식</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button 
+                onClick={() => setShowCondFormatModal(true)} 
+                className="py-2 px-3 bg-white border border-gray-300 hover:border-pink-400 hover:bg-pink-50 rounded-lg text-sm flex flex-col items-center justify-center gap-1 text-gray-700 transition-colors" 
+              >
+                <Highlighter className="w-5 h-5 text-pink-500" />
+                <span>조건부 서식</span>
+              </button>
+              <button 
+                onClick={() => setShowTableFormatModal(true)} 
+                className="py-2 px-3 bg-white border border-gray-300 hover:border-teal-400 hover:bg-teal-50 rounded-lg text-sm flex flex-col items-center justify-center gap-1 text-gray-700 transition-colors" 
+              >
+                <Table className="w-5 h-5 text-teal-500" />
+                <span>표 서식</span>
+              </button>
+            </div>
+            
+            <div className="mt-2">
+              <button 
+                onClick={() => fileInputRef.current?.click()} 
+                className="w-full py-2 px-4 bg-white border border-gray-300 hover:border-emerald-400 hover:bg-emerald-50 rounded-lg text-sm flex items-center justify-center gap-2 text-gray-700 transition-colors" 
+              >
+                <ImageIcon className="w-5 h-5 text-emerald-500" /> 배경 이미지 설정
+              </button>
+              {bgImage && (
+                <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200 flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-600">투명도 조절</span>
+                    <button 
+                      onClick={() => {
+                        setBgImage(null);
+                        setBgOpacity(0.5);
+                      }} 
+                      className="text-xs text-red-500 hover:text-red-700 font-medium flex items-center gap-1"
+                    >
+                      <X className="w-3 h-3" /> 제거
+                    </button>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0.1" 
+                    max="1.0" 
+                    step="0.05" 
+                    value={bgOpacity} 
+                    onChange={(e) => setBgOpacity(parseFloat(e.target.value))}
+                    className="w-full accent-emerald-500 cursor-pointer"
+                  />
+                </div>
+              )}
+              <input 
+                type="file" 
+                accept="image/*" 
+                ref={fileInputRef} 
+                onChange={handleImageUpload} 
+                className="hidden" 
+              />
+            </div>
+          </div>
+
+          <hr className="border-gray-200" />
+
+          {/* 행/열 제어 */}
+          <div className="flex flex-col gap-3">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">행/열 관리</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => addRow('below')} className="py-2 px-3 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg text-sm flex items-center justify-center gap-1 text-gray-700 transition-colors">
+                <ArrowDown className="w-4 h-4 text-blue-500" /> 행 추가
+              </button>
+              <button 
+                onClick={deleteRow} 
+                disabled={selectedRowIndex === null}
+                className={`py-2 px-3 bg-white border border-gray-300 rounded-lg text-sm flex items-center justify-center gap-1 transition-colors ${selectedRowIndex !== null ? 'hover:bg-red-50 hover:border-red-300 text-red-600' : 'text-gray-400 cursor-not-allowed bg-gray-50'}`} 
+              >
+                <Trash2 className="w-4 h-4" /> 행 삭제
+              </button>
+              <button onClick={() => addCol('right')} className="py-2 px-3 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg text-sm flex items-center justify-center gap-1 text-gray-700 transition-colors">
+                <ArrowRight className="w-4 h-4 text-blue-500" /> 열 추가
+              </button>
+              <button 
+                onClick={deleteCol} 
+                disabled={selectedColIndex === null}
+                className={`py-2 px-3 bg-white border border-gray-300 rounded-lg text-sm flex items-center justify-center gap-1 transition-colors ${selectedColIndex !== null ? 'hover:bg-red-50 hover:border-red-300 text-red-600' : 'text-gray-400 cursor-not-allowed bg-gray-50'}`} 
+              >
+                <Trash2 className="w-4 h-4" /> 열 삭제
+              </button>
+            </div>
+          </div>
+
+          <hr className="border-gray-200" />
+
+          {/* 데이터 도구 */}
+          <div className="flex flex-col gap-3">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">데이터 도구</h3>
+            <button 
+              onClick={sortBySponsorship} 
+              disabled={!Object.values(colTitles).includes("후원점수")}
+              className={`w-full py-2 px-4 border rounded-lg text-sm flex items-center justify-center gap-2 transition-colors ${Object.values(colTitles).includes("후원점수") ? 'bg-white border-gray-300 hover:border-orange-400 hover:bg-orange-50 text-gray-700' : 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed'}`} 
+            >
+              <BarChart className={`w-5 h-5 ${Object.values(colTitles).includes("후원점수") ? 'text-orange-500' : ''}`} /> 후원점수 내림차순 정렬
+            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => applyAutoFunction('SUM')} className="py-2 px-3 bg-white border border-gray-300 hover:border-purple-400 hover:bg-purple-50 rounded-lg text-sm flex items-center justify-center gap-1 text-gray-700 transition-colors">
+                <Sigma className="w-4 h-4 text-purple-500" /> 열 합계
+              </button>
+              <button onClick={() => applyAutoFunction('AVG')} className="py-2 px-3 bg-white border border-gray-300 hover:border-purple-400 hover:bg-purple-50 rounded-lg text-sm flex items-center justify-center gap-1 text-gray-700 transition-colors">
+                <Sigma className="w-4 h-4 text-purple-500" /> 열 평균
+              </button>
+            </div>
           </div>
         </div>
-
-        <div className="w-px h-6 bg-gray-300"></div>
-
-        {/* 행/열 제어 버튼 */}
-        <div className="flex items-center gap-2">
-          <button onClick={() => addRow('below')} className="p-1.5 hover:bg-gray-100 rounded text-sm flex items-center gap-1" title="아래에 행 추가">
-            <ArrowDown className="w-4 h-4 text-blue-600" /> 행 추가
-          </button>
-          <button 
-            onClick={deleteRow} 
-            disabled={selectedRowIndex === null}
-            className={`p-1.5 rounded text-sm flex items-center gap-1 ${selectedRowIndex !== null ? 'hover:bg-gray-100 text-red-600' : 'text-gray-400 cursor-not-allowed'}`} 
-            title={selectedRowIndex !== null ? "선택된 행 삭제" : "삭제할 행의 번호(좌측 끝)를 먼저 선택하세요"}
-          >
-            <Trash2 className="w-4 h-4" /> 행 삭제
-          </button>
-        </div>
-
-        <div className="w-px h-6 bg-gray-300"></div>
-
-        <div className="flex items-center gap-2">
-          <button onClick={() => addCol('right')} className="p-1.5 hover:bg-gray-100 rounded text-sm flex items-center gap-1" title="오른쪽에 열 추가">
-            <ArrowRight className="w-4 h-4 text-blue-600" /> 열 추가
-          </button>
-          <button 
-            onClick={deleteCol} 
-            disabled={selectedColIndex === null}
-            className={`p-1.5 rounded text-sm flex items-center gap-1 ${selectedColIndex !== null ? 'hover:bg-gray-100 text-red-600' : 'text-gray-400 cursor-not-allowed'}`} 
-            title={selectedColIndex !== null ? "선택된 열 삭제" : "삭제할 열의 헤더(알파벳 부분)를 먼저 선택하세요"}
-          >
-            <Trash2 className="w-4 h-4" /> 열 삭제
-          </button>
-        </div>
-
-        <div className="w-px h-6 bg-gray-300"></div>
-
-        {/* 정렬 버튼 */}
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={sortBySponsorship} 
-            disabled={!Object.values(colTitles).includes("후원점수")}
-            className={`p-1.5 rounded text-sm flex items-center gap-1 transition-colors ${Object.values(colTitles).includes("후원점수") ? 'hover:bg-gray-100 text-orange-600' : 'text-gray-400 cursor-not-allowed'}`} 
-            title={Object.values(colTitles).includes("후원점수") ? "후원점수가 높은 순으로 행을 정렬합니다" : "열 제목 중 '후원점수'를 선택해야 정렬 가능합니다"}
-          >
-            <BarChart className="w-4 h-4" /> 후원점수 정렬
-          </button>
-        </div>
-
-        <div className="w-px h-6 bg-gray-300"></div>
-
-        {/* 자동 함수 */}
-        <div className="flex items-center gap-2">
-          <button onClick={() => applyAutoFunction('SUM')} className="p-1.5 hover:bg-gray-100 rounded text-sm flex items-center gap-1" title="현재 위치의 위쪽 셀들을 모두 더합니다">
-            <Sigma className="w-4 h-4 text-purple-600" /> 열 합계(SUM)
-          </button>
-          <button onClick={() => applyAutoFunction('AVG')} className="p-1.5 hover:bg-gray-100 rounded text-sm flex items-center gap-1" title="현재 위치의 위쪽 셀들의 평균을 구합니다">
-            <Sigma className="w-4 h-4 text-purple-600" /> 열 평균(AVG)
-          </button>
-        </div>
       </div>
 
-      {/* VS 팀 모드 토글 */}
-      <div className="flex items-center gap-2 p-2 bg-gray-50 border-b px-4">
-        <label className="flex items-center cursor-pointer group" title="두 팀으로 나누어 점수를 경쟁하는 미리보기 화면을 활성화합니다.">
-          <div className="relative">
-            <input 
-              type="checkbox" 
-              className="sr-only" 
-              checked={isVsMode} 
-              onChange={(e) => setIsVsMode(e.target.checked)} 
-            />
-            <div className={`block w-10 h-6 rounded-full transition-colors ${isVsMode ? 'bg-indigo-500' : 'bg-gray-300'}`}></div>
-            <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${isVsMode ? 'transform translate-x-4' : ''} shadow-sm`}></div>
-          </div>
-          <span className="ml-3 text-sm font-bold text-gray-700 group-hover:text-indigo-600 transition-colors">VS 팀 모드</span>
-        </label>
-      </div>
-
-      {/* 수식 입력줄 */}
-      <div className="flex items-center gap-2 p-2 bg-white border-b">
-        <div className="bg-gray-100 px-3 py-1 font-mono text-sm border rounded min-w-[60px] text-center">
-          {numToLetter(activeCell.c)}{activeCell.r + 1}
-        </div>
-        <div className="flex-1 flex items-center gap-2 px-2 py-1 border rounded bg-white">
-          <span className="text-gray-400 italic">fx</span>
-          <input
-            className="flex-1 outline-none bg-transparent"
-            value={grid[activeCell.r]?.[activeCell.c]?.value || ''}
-            onChange={(e) => updateActiveCell({ value: e.target.value })}
-            placeholder="값이나 수식을 입력하세요 (예: =SUM(A1:A5) 또는 =A1+B1)"
-          />
-        </div>
-      </div>
-
-      {/* 스프레드시트 그리드 및 미리보기 영역 */}
-      <div className="flex-1 overflow-auto relative bg-gray-200 flex flex-col">
+      {/* 우측 메인 영역 */}
+      <div className="flex-1 flex flex-col min-w-0 bg-gray-100 relative">
         
-        {/* 본창 (Main Table) */}
-        <div className="min-w-max">
-          <table 
-            className="border-collapse" 
-            style={{ 
-              tableLayout: 'fixed',
-              backgroundColor: bgImage ? 'transparent' : 'white',
-              ...(bgImage && {
-                backgroundImage: `url(${bgImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-              })
-            }}
-          >
+        {/* 상단 컨트롤 바 (수식 입력줄, VS 모드 등) */}
+        <div className="bg-white border-b shadow-sm z-10">
+          {/* 시트 탭 영역 */}
+          <div className="flex items-center bg-gray-50 border-b border-gray-200 overflow-x-auto select-none px-2 pt-2">
+            {sheets.map(sheet => (
+              <div
+                key={sheet.id}
+                onClick={() => {
+                  if (editingSheetId) saveSheetName(editingSheetId);
+                  setActiveSheetId(sheet.id);
+                  setActiveCell({ r: 0, c: 0 });
+                  setSelectedRowIndex(null);
+                  setSelectedColIndex(null);
+                  setEditingCell(null);
+                }}
+                onDoubleClick={() => {
+                  setEditingSheetId(sheet.id);
+                  setEditSheetName(sheet.name);
+                }}
+                className={`group flex items-center gap-2 px-4 py-2 min-w-[100px] max-w-[180px] rounded-t-lg cursor-pointer transition-colors
+                  ${activeSheetId === sheet.id ? 'bg-white text-blue-700 font-bold border-t border-x border-gray-200 shadow-[0_2px_0_0_white]' : 'text-gray-600 hover:bg-gray-200 border-t border-x border-transparent'}
+                `}
+                style={{ marginBottom: '-1px' }}
+              >
+                {editingSheetId === sheet.id ? (
+                  <input
+                    autoFocus
+                    value={editSheetName}
+                    onChange={(e) => setEditSheetName(e.target.value)}
+                    onBlur={() => saveSheetName(sheet.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') saveSheetName(sheet.id); }}
+                    className="outline-none border border-blue-400 rounded px-1 w-full text-sm font-normal text-gray-800"
+                  />
+                ) : (
+                  <span className="text-sm truncate flex-1">{sheet.name}</span>
+                )}
+                
+                {sheets.length > 1 && (
+                  <button
+                    onClick={(e) => deleteSheet(sheet.id, e)}
+                    className={`p-1 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-600 transition-opacity ml-auto flex-shrink-0
+                      ${activeSheetId === sheet.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
+                    `}
+                    title="시트 삭제"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button 
+              onClick={addSheet}
+              className="p-2 ml-1 mb-1 hover:bg-gray-200 text-gray-600 rounded-md flex-shrink-0 transition-colors"
+              title="새 시트 추가"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between p-3">
+            {/* 수식 입력줄 */}
+            <div className="flex-1 flex items-center gap-3 max-w-3xl">
+              <div className="bg-gray-100 px-3 py-1.5 font-mono text-sm border border-gray-300 rounded-md min-w-[60px] text-center font-bold text-gray-700">
+                {numToLetter(activeCell.c)}{activeCell.r + 1}
+              </div>
+              <div className="flex-1 flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-md bg-white focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+                <span className="text-gray-400 italic font-serif font-bold">fx</span>
+                <input
+                  className="flex-1 outline-none bg-transparent text-sm"
+                  value={grid[activeCell.r]?.[activeCell.c]?.value || ''}
+                  onChange={(e) => updateActiveCell({ value: e.target.value })}
+                  placeholder="값이나 수식을 입력하세요 (예: =SUM(A1:A5) 또는 =A1+B1)"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 ml-4">
+              <button 
+                onClick={openDataInputModal}
+                className="bg-[#3b5998] hover:bg-[#2d4373] text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
+              >
+                데이터 입력관리
+              </button>
+              
+              <div className="w-px h-6 bg-gray-300"></div>
+
+              {/* VS 팀 모드 토글 */}
+              <label className="flex items-center cursor-pointer group bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 transition-colors" title="두 팀으로 나누어 점수를 경쟁하는 미리보기 화면을 활성화합니다.">
+                <div className="relative">
+                  <input 
+                    type="checkbox" 
+                    className="sr-only" 
+                    checked={isVsMode} 
+                    onChange={(e) => setIsVsMode(e.target.checked)} 
+                  />
+                  <div className={`block w-10 h-6 rounded-full transition-colors ${isVsMode ? 'bg-indigo-500' : 'bg-gray-300'}`}></div>
+                  <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${isVsMode ? 'transform translate-x-4' : ''} shadow-sm`}></div>
+                </div>
+                <span className="ml-3 text-sm font-bold text-gray-700 group-hover:text-indigo-600 transition-colors">VS 팀 모드</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* 메인 콘텐츠 영역 (그리드 + 미리보기 좌우 배치) */}
+        <div className="flex-1 flex overflow-hidden p-4 gap-4">
+          
+          {/* 좌측: 엑셀 그리드 */}
+          <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-auto flex flex-col relative">
+            <div className="p-3 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center sticky top-0 left-0 z-30">
+              <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                <Table className="w-4 h-4 text-gray-500" /> 데이터 설정
+              </h2>
+              <span className="text-xs text-gray-400">더블 클릭하여 편집 / A열 클릭 시 크루 선택</span>
+            </div>
+            
+            <div className="flex-1 overflow-auto p-4">
+              <div className="min-w-max inline-block rounded-lg border border-gray-300 overflow-hidden shadow-sm">
+                <table 
+                  className="border-collapse bg-white" 
+                  style={{ 
+                    tableLayout: 'fixed',
+                    backgroundColor: bgImage ? 'transparent' : 'white',
+                    ...(bgImage && {
+                      backgroundImage: `url(${bgImage})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center'
+                    })
+                  }}
+                >
             {/* 열 헤더 (A, B, C...) */}
             <thead className="sticky top-0 z-20">
               <tr>
@@ -1220,13 +1298,18 @@ export default function App() {
             </tbody>
           </table>
         </div>
+      </div>
+      </div>
 
-        {/* 미리보기 (Preview Table or VS Board) */}
-        <div className="p-6 pb-12 min-w-max">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            미리보기 {isVsMode && <span className="text-indigo-600 text-sm bg-indigo-50 px-2 py-1 rounded-md font-semibold border border-indigo-100">VS 팀 모드</span>}
-          </h3>
-          
+      {/* 우측: 미리보기 (Preview Table or VS Board) */}
+      <div className="w-[45%] bg-white rounded-xl shadow-sm border border-gray-200 overflow-auto flex flex-col relative">
+        <div className="p-3 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center sticky top-0 left-0 z-30">
+          <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+            미리보기 {isVsMode && <span className="text-indigo-600 text-[10px] bg-indigo-50 px-1.5 py-0.5 rounded font-semibold border border-indigo-100 ml-1">VS 팀 모드</span>}
+          </h2>
+        </div>
+        
+        <div className="flex-1 overflow-auto p-4">
           {isVsMode ? (() => {
              const [team1, team2] = getVsTeamsData();
              const totalScore = team1.score + team2.score;
@@ -1253,17 +1336,17 @@ export default function App() {
                     transform: 'translate(-50%, -50%)', 
                     backgroundColor: '#facc15', // yellow
                     color: '#111827', 
-                    width: '80px', 
-                    height: '80px', 
+                    width: '60px', 
+                    height: '60px', 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center', 
                     borderRadius: '50%', 
                     fontWeight: '900', 
                     fontStyle: 'italic', 
-                    fontSize: '28px', 
+                    fontSize: '20px', 
                     zIndex: 10, 
-                    border: '8px solid #111827', 
+                    border: '6px solid #111827', 
                     boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
                     transition: 'left 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}>
@@ -1274,22 +1357,22 @@ export default function App() {
                   <div style={{ 
                     width: `${t1Ratio}%`, 
                     backgroundColor: '#1d4ed8', // 짙은 파랑
-                    padding: '40px', 
+                    padding: '24px', 
                     display: 'flex', 
                     flexDirection: 'column',
                     transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}>
-                    <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#dbeafe', marginBottom: '8px', margin: 0 }}>{team1.name}</h3>
-                    <div style={{ fontSize: '72px', fontWeight: '900', marginBottom: '32px', lineHeight: 1 }}>
-                      {team1.score.toLocaleString()} <span style={{ fontSize: '24px', fontWeight: 'normal', color: '#93c5fd' }}>pts</span>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#dbeafe', marginBottom: '8px', margin: 0 }}>{team1.name}</h3>
+                    <div style={{ fontSize: '48px', fontWeight: '900', marginBottom: '24px', lineHeight: 1 }}>
+                      {team1.score.toLocaleString()} <span style={{ fontSize: '16px', fontWeight: 'normal', color: '#93c5fd' }}>pts</span>
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                       {team1.members.map((m, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'rgba(0,0,0,0.3)', padding: '6px 16px 6px 6px', borderRadius: '9999px' }}>
-                          {m.avatar ? <img src={m.avatar} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} alt="avatar" /> : <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#4b5563' }}></div>}
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(0,0,0,0.3)', padding: '4px 12px 4px 4px', borderRadius: '9999px' }}>
+                          {m.avatar ? <img src={m.avatar} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} alt="avatar" /> : <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#4b5563' }}></div>}
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{m.name}</span>
-                            <span style={{ fontSize: '12px', color: '#bfdbfe', fontWeight: '500' }}>{m.score.toLocaleString()}</span>
+                            <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{m.name}</span>
+                            <span style={{ fontSize: '10px', color: '#bfdbfe', fontWeight: '500' }}>{m.score.toLocaleString()}</span>
                           </div>
                         </div>
                       ))}
@@ -1300,24 +1383,24 @@ export default function App() {
                   <div style={{ 
                     width: `${t2Ratio}%`, 
                     backgroundColor: '#b91c1c', // 짙은 빨강
-                    padding: '40px', 
+                    padding: '24px', 
                     display: 'flex', 
                     flexDirection: 'column', 
                     alignItems: 'flex-end', 
                     textAlign: 'right',
                     transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}>
-                    <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#fee2e2', marginBottom: '8px', margin: 0 }}>{team2.name}</h3>
-                    <div style={{ fontSize: '72px', fontWeight: '900', marginBottom: '32px', lineHeight: 1 }}>
-                      {team2.score.toLocaleString()} <span style={{ fontSize: '24px', fontWeight: 'normal', color: '#fca5a5' }}>pts</span>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#fee2e2', marginBottom: '8px', margin: 0 }}>{team2.name}</h3>
+                    <div style={{ fontSize: '48px', fontWeight: '900', marginBottom: '24px', lineHeight: 1 }}>
+                      {team2.score.toLocaleString()} <span style={{ fontSize: '16px', fontWeight: 'normal', color: '#fca5a5' }}>pts</span>
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end' }}>
                       {team2.members.map((m, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'rgba(0,0,0,0.3)', padding: '6px 6px 6px 16px', borderRadius: '9999px', flexDirection: 'row-reverse' }}>
-                          {m.avatar ? <img src={m.avatar} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} alt="avatar" /> : <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#4b5563' }}></div>}
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(0,0,0,0.3)', padding: '4px 4px 4px 12px', borderRadius: '9999px', flexDirection: 'row-reverse' }}>
+                          {m.avatar ? <img src={m.avatar} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} alt="avatar" /> : <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#4b5563' }}></div>}
                           <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{m.name}</span>
-                            <span style={{ fontSize: '12px', color: '#fecaca', fontWeight: '500' }}>{m.score.toLocaleString()}</span>
+                            <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{m.name}</span>
+                            <span style={{ fontSize: '10px', color: '#fecaca', fontWeight: '500' }}>{m.score.toLocaleString()}</span>
                           </div>
                         </div>
                       ))}
@@ -1326,182 +1409,120 @@ export default function App() {
                 </div>
              );
           })() : (
-            <table 
-              ref={tableRef}
-              className="border-collapse shadow-sm bg-white" 
-              style={{ 
-                tableLayout: 'fixed',
-                backgroundColor: bgImage ? 'transparent' : 'white',
-                ...(bgImage && {
-                  backgroundImage: `url(${bgImage})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center'
-                })
-              }}
-            >
-              {/* 미리보기 열 헤더 */}
-              <thead>
-                <tr>
-                  <th className={`w-10 h-10 border border-gray-300 ${bgImage ? 'bg-gray-100/90 backdrop-blur-sm' : 'bg-gray-100'}`}></th>
-                  {Array.from({ length: colsCount }).map((_, c) => (
-                    <th 
-                      key={`prev-col-${c}`} 
-                      className={`w-28 border border-gray-300 text-center font-semibold text-sm select-none p-2
-                        ${bgImage ? 'bg-gray-100/90 backdrop-blur-sm text-gray-800' : 'bg-gray-100 text-gray-700'}
-                      `}
-                    >
-                      {c === 0 ? "크루" : (colTitles[c] !== "선택" ? colTitles[c] : "")}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              
-              {/* 미리보기 본문 셀 */}
-              <tbody>
-                {displayGrid.map((row, r) => (
-                  <tr key={`prev-row-${r}`}>
-                    <td 
-                      className={`w-10 border border-gray-300 text-center text-sm select-none
-                        ${bgImage ? 'bg-gray-100/90 text-gray-800' : 'bg-gray-100 text-gray-600'}
-                        ${bgImage ? 'backdrop-blur-sm' : ''}
-                      `}
-                    >
-                      {r + 1}
-                    </td>
-                    
-                    {row.map((cell, c) => {
-                      const isDefaultColor = cell.color === '#ffffff' || !cell.color;
-                      
-                      let finalBgColor = cell.color;
-                      let finalColor = cell.textColor !== 'inherit' && cell.textColor ? cell.textColor : (String(cell.computed).startsWith('#') ? 'red' : 'inherit');
-                      let isCondFormatApplied = false;
-                      
-                      const rules = currentSheet.conditionalRules || [];
-                      rules.filter(rule => rule.targetCol === c).forEach(rule => {
-                        if (checkCondition(cell.computed, rule)) {
-                          const formatStyle = condFormatOptions.find(opt => opt.id === rule.format);
-                          if (formatStyle) {
-                            if (formatStyle.bg !== 'transparent') {
-                              finalBgColor = formatStyle.bg;
-                              isCondFormatApplied = true;
-                            }
-                            if (formatStyle.color !== 'inherit') finalColor = formatStyle.color;
-                          }
-                        }
-                      });
-
-                      if (bgImage && isDefaultColor && !isCondFormatApplied) {
-                        finalBgColor = `rgba(255, 255, 255, ${1 - bgOpacity})`;
-                      }
-                      
-                      return (
-                        <td
-                          key={`prev-cell-${r}-${c}`}
-                          className="border border-gray-300 relative"
-                          style={{ backgroundColor: finalBgColor, height: '32px' }}
-                        >
-                          <div 
-                            className="w-full h-full px-1.5 flex items-center overflow-hidden whitespace-nowrap text-ellipsis gap-1.5"
-                            style={{ 
-                              color: finalColor, 
-                              justifyContent: c === 0 || (isNaN(cell.computed) && cell.computed !== '' && !String(cell.computed).startsWith('#')) ? 'flex-start' : 'flex-end',
-                              fontWeight: cell.fontWeight === 'bold' ? 'bold' : (bgImage && isDefaultColor ? '500' : 'normal'),
-                              fontFamily: cell.fontFamily || 'sans-serif',
-                              fontSize: `${cell.fontSize || 14}px`,
-                              textDecoration: cell.textDecoration || 'none'
-                            }}
-                          >
-                            {cell.avatar && (
-                              <img src={cell.avatar} alt="crew" className="w-5 h-5 rounded-full object-cover flex-shrink-0 border border-gray-200" />
-                            )}
-                            {c === 0 && !cell.computed ? (
-                              <span className="truncate text-gray-400 text-xs tracking-tight">크루원 선택</span>
-                            ) : (
-                              <span className="truncate">{cell.computed}</span>
-                            )}
-                          </div>
-                        </td>
-                      );
-                    })}
+            <div className="min-w-max inline-block rounded-lg border border-gray-300 overflow-hidden shadow-sm">
+              <table 
+                ref={tableRef}
+                className="border-collapse bg-white" 
+                style={{ 
+                  tableLayout: 'fixed',
+                  backgroundColor: bgImage ? 'transparent' : 'white',
+                  ...(bgImage && {
+                    backgroundImage: `url(${bgImage})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  })
+                }}
+              >
+                {/* 미리보기 열 헤더 */}
+                <thead>
+                  <tr>
+                    <th className={`w-10 h-10 border border-gray-300 ${bgImage ? 'bg-gray-100/90 backdrop-blur-sm' : 'bg-gray-100'}`}></th>
+                    {Array.from({ length: colsCount }).map((_, c) => (
+                      <th 
+                        key={`prev-col-${c}`} 
+                        className={`w-28 border border-gray-300 text-center font-semibold text-sm select-none p-2
+                          ${bgImage ? 'bg-gray-100/90 backdrop-blur-sm text-gray-800' : 'bg-gray-100 text-gray-700'}
+                        `}
+                      >
+                        {c === 0 ? "크루" : (colTitles[c] !== "선택" ? colTitles[c] : "")}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                
+                {/* 미리보기 본문 셀 */}
+                <tbody>
+                  {displayGrid.map((row, r) => (
+                    <tr key={`prev-row-${r}`}>
+                      <td 
+                        className={`w-10 border border-gray-300 text-center text-sm select-none
+                          ${bgImage ? 'bg-gray-100/90 text-gray-800' : 'bg-gray-100 text-gray-600'}
+                          ${bgImage ? 'backdrop-blur-sm' : ''}
+                        `}
+                      >
+                        {r + 1}
+                      </td>
+                      
+                      {row.map((cell, c) => {
+                        const isDefaultColor = cell.color === '#ffffff' || !cell.color;
+                        
+                        let finalBgColor = cell.color;
+                        let finalColor = cell.textColor !== 'inherit' && cell.textColor ? cell.textColor : (String(cell.computed).startsWith('#') ? 'red' : 'inherit');
+                        let isCondFormatApplied = false;
+                        
+                        const rules = currentSheet.conditionalRules || [];
+                        rules.filter(rule => rule.targetCol === c).forEach(rule => {
+                          if (checkCondition(cell.computed, rule)) {
+                            const formatStyle = condFormatOptions.find(opt => opt.id === rule.format);
+                            if (formatStyle) {
+                              if (formatStyle.bg !== 'transparent') {
+                                finalBgColor = formatStyle.bg;
+                                isCondFormatApplied = true;
+                              }
+                              if (formatStyle.color !== 'inherit') finalColor = formatStyle.color;
+                            }
+                          }
+                        });
+
+                        if (bgImage && isDefaultColor && !isCondFormatApplied) {
+                          finalBgColor = `rgba(255, 255, 255, ${1 - bgOpacity})`;
+                        }
+                        
+                        return (
+                          <td
+                            key={`prev-cell-${r}-${c}`}
+                            className="border border-gray-300 relative"
+                            style={{ backgroundColor: finalBgColor, height: '32px' }}
+                          >
+                            <div 
+                              className="w-full h-full px-1.5 flex items-center overflow-hidden whitespace-nowrap text-ellipsis gap-1.5"
+                              style={{ 
+                                color: finalColor, 
+                                justifyContent: c === 0 || (isNaN(cell.computed) && cell.computed !== '' && !String(cell.computed).startsWith('#')) ? 'flex-start' : 'flex-end',
+                                fontWeight: cell.fontWeight === 'bold' ? 'bold' : (bgImage && isDefaultColor ? '500' : 'normal'),
+                                fontFamily: cell.fontFamily || 'sans-serif',
+                                fontSize: `${cell.fontSize || 14}px`,
+                                textDecoration: cell.textDecoration || 'none'
+                              }}
+                            >
+                              {cell.avatar && (
+                                <img src={cell.avatar} alt="crew" className="w-5 h-5 rounded-full object-cover flex-shrink-0 border border-gray-200" />
+                              )}
+                              {c === 0 && !cell.computed ? (
+                                <span className="truncate text-gray-400 text-xs tracking-tight">크루원 선택</span>
+                              ) : (
+                                <span className="truncate">{cell.computed}</span>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
-
-      {/* 데이터 입력 관리 바 */}
-      <div className="bg-white border-t border-gray-300 p-2 flex items-center">
-        <button 
-          onClick={openDataInputModal}
-          className="bg-[#3b5998] hover:bg-[#2d4373] text-white px-4 py-1.5 rounded-md text-sm font-medium shadow-sm transition-colors"
-        >
-          데이터 입력관리
-        </button>
       </div>
 
-      {/* 시트 탭 영역 */}
-      <div className="flex items-center bg-gray-100 border-t border-gray-300 overflow-x-auto select-none">
-        {sheets.map(sheet => (
-          <div
-            key={sheet.id}
-            onClick={() => {
-              if (editingSheetId) saveSheetName(editingSheetId);
-              setActiveSheetId(sheet.id);
-              setActiveCell({ r: 0, c: 0 });
-              setSelectedRowIndex(null);
-              setSelectedColIndex(null);
-              setEditingCell(null);
-            }}
-            onDoubleClick={() => {
-              setEditingSheetId(sheet.id);
-              setEditSheetName(sheet.name);
-            }}
-            className={`group flex items-center gap-2 px-4 py-2 min-w-[80px] max-w-[150px] border-r border-gray-300 cursor-pointer 
-              ${activeSheetId === sheet.id ? 'bg-white text-blue-600 font-bold border-b-2 border-b-blue-600' : 'text-gray-600 hover:bg-gray-200'}
-            `}
-          >
-            {editingSheetId === sheet.id ? (
-              <input
-                autoFocus
-                value={editSheetName}
-                onChange={(e) => setEditSheetName(e.target.value)}
-                onBlur={() => saveSheetName(sheet.id)}
-                onKeyDown={(e) => { if (e.key === 'Enter') saveSheetName(sheet.id); }}
-                className="outline-none border border-blue-400 rounded px-1 w-full text-xs font-normal text-gray-800"
-              />
-            ) : (
-              <span className="text-xs truncate">{sheet.name}</span>
-            )}
-            
-            {sheets.length > 1 && (
-              <button
-                onClick={(e) => deleteSheet(sheet.id, e)}
-                className={`p-0.5 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-600 transition-opacity ml-auto flex-shrink-0
-                  ${activeSheetId === sheet.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
-                `}
-                title="시트 삭제"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
-        ))}
-        <button 
-          onClick={addSheet}
-          className="p-2 hover:bg-gray-200 text-gray-600 flex-shrink-0"
-          title="새 시트 추가"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-      
       {/* 상태 표시줄 */}
-      <div className="bg-gray-200 border-t p-1 px-4 text-xs text-gray-500 flex justify-between">
+      <div className="bg-gray-200 border-t p-1 px-4 text-xs text-gray-500 flex justify-between z-20">
         <span>더블 클릭하여 셀/시트 이름 편집 / <b>A열 클릭 시 크루 선택</b></span>
         <span>지원 함수: SUM(범위), AVG(범위), MAX(범위), MIN(범위) 및 기본 사칙연산(+,-,*,/)</span>
       </div>
+    </div>
 
       {/* 크루 선택 모달 */}
       {showCrewModal && (
@@ -1781,6 +1802,50 @@ export default function App() {
           </div>
         );
       })()}
+
+      {/* 후원페이지 설정 안내 모달 */}
+      {showDonationSetupModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowDonationSetupModal(false)}>
+          <div className="bg-white p-6 rounded-xl shadow-xl max-w-md w-full flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <ExternalLink className="w-6 h-6 text-orange-600" />
+                후원페이지 URL 설정 안내
+              </h2>
+              <button onClick={() => setShowDonationSetupModal(false)} className="text-gray-500 hover:text-gray-800">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="text-sm text-gray-700 space-y-3 mb-6 bg-orange-50 p-4 rounded-lg border border-orange-100">
+              <p className="font-medium text-orange-800">방송에 후원페이지를 연동하려면 아래 단계를 따라 해보세요. 🎉</p>
+              <ol className="list-decimal pl-5 space-y-2 mt-2">
+                <li>왼쪽 메뉴에서 <strong>[계정설정]</strong>을 누르고 <strong>[내 후원페이지 URL 설정]</strong>을 클릭하세요.</li>
+                <li>원하는 URL 주소를 입력하고 중복 확인을 진행하세요.</li>
+                <li>설정이 완료된 URL을 복사하여 시청자들에게 공유하세요!</li>
+              </ol>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button 
+                onClick={() => setShowDonationSetupModal(false)} 
+                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                닫기
+              </button>
+              <button 
+                onClick={() => {
+                  alert("'계정설정 > 내 후원페이지 URL 설정' 메뉴로 이동합니다.");
+                  setShowDonationSetupModal(false);
+                }} 
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 transition-colors"
+              >
+                다이렉트 이동 <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* HTML 내보내기 모달 */}
       {showExportModal && (
